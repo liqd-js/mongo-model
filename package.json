@@ -1,0 +1,29 @@
+{
+  "name": "@liqd-js/mongo-model",
+  "description": "Mongo model class",
+  "version": "0.0.1",
+  "author": "radixxko",
+  "license": "MIT",
+  "main": "lib/model.js",
+  "homepage": "https://liqd-js.com/lib/mongo-model",
+  "files": [
+    "lib/"
+  ],
+  "scripts": {
+    "test": "nyc mocha",
+    "coverage": "nyc report --reporter=text-lcov | coveralls"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/liqd-js/mongo-model.git"
+  },
+  "keywords": [
+    "mongo",
+    "model",
+    "liqd-js",
+    "liqd"
+  ],
+  "devDependencies": {
+    "mongodb": "^3.6.5"
+  }
+}
