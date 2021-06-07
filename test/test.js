@@ -35,4 +35,31 @@ async function test()
     console.log( entry, entry.__key, unlock );
 }
 
-test();
+async function test_ref()
+{
+    const client = MongoClient( `mongodb://localhost:27017`, { useUnifiedTopology: true }); client.connect();
+    const mongodb = client.db( 'milkstock' );
+
+    const test = new Test( mongodb.collection( 'asks' ));
+
+    let ask = await test.get( 98059133911701 );
+
+    console.log( ask );
+    
+    const test2 = new Test( mongodb.collection( 'users' ));
+
+    let user = await test2.get( 97991820678043 );
+
+    console.log( require('util').inspect( user, { depth: Infinity, colors: true }));
+
+    let users = await test2.list();
+
+    console.log( require('util').inspect( users, { depth: Infinity, colors: true }));
+
+    let multiusers = await test2.get([ 247886762495992, 97991820678043 ]);
+
+    console.log( require('util').inspect( multiusers, { depth: Infinity, colors: true }));
+}
+
+//test();
+test_ref();
