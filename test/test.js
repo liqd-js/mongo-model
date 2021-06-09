@@ -42,23 +42,40 @@ async function test_ref()
 
     const test = new Test( mongodb.collection( 'asks' ));
 
-    let ask = await test.get( 98059133911701 );
+    //let ask = await test.get( 98059133911701 );
 
-    console.log( ask );
+    //console.log( ask );
     
     const test2 = new Test( mongodb.collection( 'users' ));
 
-    let user = await test2.get( 97991820678043 );
+    //let user = await test2.get( 97991820678043 );
 
-    console.log( require('util').inspect( user, { depth: Infinity, colors: true }));
+    //console.log( require('util').inspect( user, { depth: Infinity, colors: true }));
 
-    let users = await test2.list();
+    //let users = await test2.list();
 
-    console.log( require('util').inspect( users, { depth: Infinity, colors: true }));
+    //console.log( require('util').inspect( users, { depth: Infinity, colors: true }));
 
-    let multiusers = await test2.get([ 247886762495992, 97991820678043 ]);
+    setTimeout(() =>
+    {
+        test2.get( 97991820678043 ).then( console.log );
+
+        setTimeout(() =>
+        {
+            test2.get( 97991820678043 ).then( console.log )
+        },
+        200 );
+    },
+    200 );
+
+    let multiusers = await Promise.all([ test2.get( 97991820678043 ), test2.get( 247886762495992 ), test2.get( 97991820678043 )]);
 
     console.log( require('util').inspect( multiusers, { depth: Infinity, colors: true }));
+
+    for( let i = 0; i < 100; ++i )
+    {
+        //await test2.get( 97991820678043 );
+    }
 }
 
 //test();
