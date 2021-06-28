@@ -16,23 +16,30 @@ class Test extends Model
 
 async function test()
 {
-    const client = MongoClient( `mongodb://localhost:27017`, { useUnifiedTopology: true }); client.connect();
-    const mongodb = client.db( 'mongo_model_databazka' );
+    try
+    {
+        const client = MongoClient( `mongodb://localhost:27017`, { useUnifiedTopology: true }); client.connect();
+        const mongodb = client.db( 'mongo_model_databazka' );
 
-    const test = new Test( mongodb.collection( 'testik' ));
+        const test = new Test( mongodb.collection( 'testik' ));
 
-    let new_entry = await test.create( null, { foo: 'bar' }, { lock: 10000 });
+        let new_entry = await test.create( 106, { foo: 'bar', bar: 'foo' }, { lock: 10000 });
 
-    console.log( new_entry );
+        console.log( new_entry );
 
-    let entry = await test.get( 106, [], { lock: 10000, timeout: 1000 });
-    let update = await test.update( 106, { foo: 'foobar' }, { key: entry.__key, timeout: 1000, unlock: true });
+        let entry = await test.get( 106, [], { lock: 10000, timeout: 1000 });
+        let update = await test.update( 106, { foo: 'foobar' }, { key: entry.__key, timeout: 1000, unlock: true });
 
-    console.log( update );
+        console.log( update );
 
-    let unlock = 0;//await test.unlock( 106, entry.__key );
+        let unlock = 0;//await test.unlock( 106, entry.__key );
 
-    console.log( entry, entry.__key, unlock );
+        console.log( entry, entry.__key, unlock );
+    }
+    catch( e )
+    {
+        console.log( e );
+    }
 }
 
 async function test_ref()
@@ -78,5 +85,5 @@ async function test_ref()
     }
 }
 
-//test();
-test_ref();
+test();
+//test_ref();
