@@ -23,7 +23,7 @@ async function test()
 
         const test = new Test( mongodb.collection( 'testik' ));
 
-        let new_entry = await test.create( 106, { foo: 'bar', bar: 'foo' }, { lock: 10000 });
+        let new_entry = await test.create( null, { foo: 'bar', bar: 'foo' }, { lock: 10000 });
 
         console.log( new_entry );
 
