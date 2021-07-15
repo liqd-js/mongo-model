@@ -27,7 +27,8 @@ async function test()
 
         console.log( new_entry );
 
-        let entry = await test.get( 106, [], { lock: 10000, timeout: 1000 });
+        //let entry = await test.get( 106, [], { lock: 10000, timeout: 1000 });
+        let entry = await test.get({ _id: 106 });
         let update = await test.update( 106, { foo: 'foobar' }, { key: entry.__key, timeout: 1000, unlock: true });
 
         console.log( update );
