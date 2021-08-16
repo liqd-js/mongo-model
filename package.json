@@ -1,7 +1,7 @@
 {
   "name": "@liqd-js/mongo-model",
   "description": "Mongo model class",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "author": "radixxko",
   "license": "MIT",
   "main": "lib/model.js",
