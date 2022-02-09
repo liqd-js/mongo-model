@@ -18,7 +18,7 @@ async function test()
 {
     try
     {
-        const client = MongoClient( `mongodb://localhost:27017`, { useUnifiedTopology: true }); client.connect();
+        const client = new MongoClient( `mongodb://localhost:27017`, { useUnifiedTopology: true }); client.connect();
         const mongodb = client.db( 'mongo_model_databazka' );
 
         const test = new Test( mongodb.collection( 'testik' ));
@@ -46,7 +46,7 @@ async function test()
 
 async function test_ref()
 {
-    const client = MongoClient( `mongodb://localhost:27017`, { useUnifiedTopology: true }); client.connect();
+    const client = new MongoClient( `mongodb://localhost:27017`, { useUnifiedTopology: true }); client.connect();
     const mongodb = client.db( 'milkstock' );
 
     const test = new Test( mongodb.collection( 'asks' ));
@@ -87,5 +87,23 @@ async function test_ref()
     }
 }
 
-test();
+async function test_ref_projections()
+{
+    const client = new MongoClient( `mongodb://webergency-shipping:iTA5Bg6VN2Bm6myT@localhost:27017?authMechanism=DEFAULT`, { useUnifiedTopology: true }); client.connect();
+    const mongodb = client.db( 'webergency_shipping_XgltRtUcReqJugV4aZRLCQ' );
+
+    const Shipment = new Test( mongodb.collection( 'shipments' ));
+
+    let shipment = await Shipment.get( 2286052235120033, [ '!$$sender.$$shipper.auth' ]);
+
+    console.log( require('util').inspect( shipment, { colors: true, depth: 10 }));
+
+    shipment = await Shipment.get( 2286052235120033 );
+
+    console.log( require('util').inspect( shipment, { colors: true, depth: 10 }));
+}
+
+//test();
 //test_ref();
+
+test_ref_projections();
