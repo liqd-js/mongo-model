@@ -1,109 +1,136 @@
-const MongoClient = require('mongodb').MongoClient;
-const Model = require('../lib/model');
+const assert = require('node:assert');
+const MongoModel = require( '..' );
 
-class Test extends Model
+let DB, PREFIX = 'mongo_model_', NOOP = () => undefined;
+
+const approximately = ( value, desired, epsilon ) => desired - epsilon < value && value < desired + epsilon;
+
+describe( 'setup', () =>
 {
-    constructor( collection )
+    it( 'should connect to mongoDB', async() =>
     {
-        super( collection );
-    }
+        client = new ( require('mongodb').MongoClient )( 'mongodb://webergency-sandbox:HJpEvXRhFGVWK249@localhost:27017?authMechanism=DEFAULT', { useUnifiedTopology: true });
+        
+        await client.connect();
 
-    async get( ...args )
+        DB = client.db( 'webergency_sandbox' );
+    })
+    .timeout( 5000 );
+
+    it( 'should remove all collections', async() =>
     {
-        return super.get( ...args );
-    }
-}
+        await DB.collection( PREFIX + 'companies' ).drop().catch( NOOP );
+        await DB.collection( PREFIX + 'employees' ).drop().catch( NOOP );
+    })
+    .timeout( 5000 );
+});
 
-async function test()
+describe( 'basic model', () =>
 {
-    try
-    {
-        const client = new MongoClient( `mongodb://localhost:27017`, { useUnifiedTopology: true }); client.connect();
-        const mongodb = client.db( 'mongo_model_databazka' );
-
-        const test = new Test( mongodb.collection( 'testik' ));
-
-        //let new_entry = await test.create( null, { foo: 'bar', bar: 'foo' }, { lock: 10000 });
-        let new_entry = await test.create( Model.INCREMENT, { foo: 'bar', bar: 'foo' }, { lock: 10000 });
-
-        console.log( new_entry );
-
-        //let entry = await test.get( 106, [], { lock: 10000, timeout: 1000 });
-        let entry = await test.get({ _id: 106 });
-        let update = await test.update( 106, { foo: 'foobar' }, { key: entry.__key, timeout: 1000, unlock: true });
-
-        console.log( update );
-
-        let unlock = 0;//await test.unlock( 106, entry.__key );
-
-        console.log( entry, entry.__key, unlock );
-    }
-    catch( e )
-    {
-        console.log( e );
-    }
-}
-
-async function test_ref()
-{
-    const client = new MongoClient( `mongodb://localhost:27017`, { useUnifiedTopology: true }); client.connect();
-    const mongodb = client.db( 'milkstock' );
-
-    const test = new Test( mongodb.collection( 'asks' ));
-
-    //let ask = await test.get( 98059133911701 );
-
-    //console.log( ask );
+    let BasicModel, companies, employees;
     
-    const test2 = new Test( mongodb.collection( 'users' ));
-
-    //let user = await test2.get( 97991820678043 );
-
-    //console.log( require('util').inspect( user, { depth: Infinity, colors: true }));
-
-    //let users = await test2.list();
-
-    //console.log( require('util').inspect( users, { depth: Infinity, colors: true }));
-
-    setTimeout(() =>
+    it( 'should define model', () => 
     {
-        test2.get( 97991820678043 ).then( console.log );
-
-        setTimeout(() =>
+        BasicModel = class BasicModel extends MongoModel
         {
-            test2.get( 97991820678043 ).then( console.log )
-        },
-        200 );
-    },
-    200 );
+            constructor( collection, options )
+            {
+                super( collection, options );
+            }
+        }
+    });
 
-    let multiusers = await Promise.all([ test2.get( 97991820678043 ), test2.get( 247886762495992 ), test2.get( 97991820678043 )]);
-
-    console.log( require('util').inspect( multiusers, { depth: Infinity, colors: true }));
-
-    for( let i = 0; i < 100; ++i )
+    it( 'should instantiate models', () => 
     {
-        //await test2.get( 97991820678043 );
-    }
-}
+        companies = new BasicModel( DB.collection( PREFIX + 'companies' ));
+        employees = new BasicModel( DB.collection( PREFIX + 'employees' ));
+    });
 
-async function test_ref_projections()
+    it( 'should not find entry', async() =>
+    {
+        let entry = await companies.get( 1 );
+
+        assert.equal( entry, undefined, 'entry should be undefined' );
+    });
+
+    it( 'should create entry', async() =>
+    {
+        const data = { name: 'ACME' };
+
+        let entry = await companies.create( 1, data );
+
+        assert.deepStrictEqual( entry, { _id: 1, ...data }, 'created entry missmatch' );
+
+        entry = await companies.get( 1 );
+
+        assert.deepStrictEqual( entry, { _id: 1, ...data }, 'fetched entry missmatch' );
+    });
+
+    it( 'should create entry with increment', async() =>
+    {
+        const data = { name: 'APPLE' };
+
+        let entry = await companies.create( companies.INCREMENT, data );
+
+        assert.deepStrictEqual( entry, { _id: 2, ...data }, 'created entry missmatch' );
+
+        entry = await companies.get( 2 );
+
+        assert.deepStrictEqual( entry, { _id: 2, ...data }, 'fetched entry missmatch' );
+    });
+
+    it( 'should list all entries', async() =>
+    {
+        let entries = await companies.list({ order: { _id: -1 }});
+        
+        assert.equal( entries.length, 2, 'fetched entries count missmatch' );
+        assert.deepStrictEqual( entries.map( e => e._id ), [ 2, 1 ], 'fetched entries missmatch' );
+    });
+
+    it( 'should lock/unlock entry', async() =>
+    {
+        let entry = await companies.get( 1, undefined, { lock: 2000 });
+
+        assert.ok( entry.__key, 'entry key missing' );
+        assert.equal( entry._id, 1, 'fetched entry missmatch' );
+
+        await companies.unlock( 1, entry.__key );
+    });
+
+    it( 'should prevent accessing locked entry', async() =>
+    {
+        let entry = await companies.get( 1, undefined, { lock: 2000 }), start = Date.now();
+        let locked_entry = await companies.get( 1, undefined, { lock: 2000 });
+
+        assert.ok( approximately(  Date.now() - start, 2000, 250 ), 'entry was not locked' );
+
+        await companies.unlock( 1, locked_entry.__key );
+    })
+    .timeout( 10000 );
+
+    it( 'should not update locked entry', async() =>
+    {
+        let entry = await companies.get( 1, undefined, { lock: 5000 }), start = Date.now();
+        let status = await companies.update( 1, { name: 'ACME inc.' }, { timeout: 2000 }).catch( e => e );
+
+        assert.equal( status.code, 408, 'entry was not protected' );
+    
+        await companies.unlock( 1, entry.__key );
+
+        entry = await companies.get( 1 );
+
+        assert.equal( entry.name, 'ACME', 'entry was updated' );
+    })
+    .timeout( 10000 );
+
+});
+
+describe( 'cleanup', () =>
 {
-    const client = new MongoClient( `mongodb://webergency-shipping:iTA5Bg6VN2Bm6myT@localhost:27017?authMechanism=DEFAULT`, { useUnifiedTopology: true }); client.connect();
-    const mongodb = client.db( 'webergency_shipping_XgltRtUcReqJugV4aZRLCQ' );
-
-    const Shipment = new Test( mongodb.collection( 'shipments' ));
-
-    let shipment = await Shipment.get( 2286052235120033, [ '!$$sender.$$shipper.auth' ]);
-
-    console.log( require('util').inspect( shipment, { colors: true, depth: 10 }));
-
-    shipment = await Shipment.get( 2286052235120033 );
-
-    console.log( require('util').inspect( shipment, { colors: true, depth: 10 }));
-}
-
-//test();
-//test_ref();
-
-test_ref_projections();
+    it( 'should remove all collections', async() =>
+    {
+        await DB.collection( PREFIX + 'companies' ).drop().catch( NOOP );
+        await DB.collection( PREFIX + 'employees' ).drop().catch( NOOP );
+    })
+    .timeout( 5000 );
+});
